@@ -1,0 +1,44 @@
+version: "3"
+
+services:
+  # Base Mongo
+  mongo:
+    image: mongo:5
+    container_name: mongo_service
+    ports:
+      - "27017:27017"
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dkb
+      MONGO_INITDB_ROOT_PASSWORD: diakhaby
+
+  # API FastAPI
+  fastapi:
+    build: .
+    container_name: fastapi_service
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mongo
+    environment:
+      - MONGO_URL=mongodb://dkb:diakhaby@mongo:27017/
+      - MONGO_DB=satisfaction
+
+  # Airflow
+  # Airflow
+airflow:
+  image: apache/airflow:2.6.3
+  container_name: airflow_service
+  restart: always
+  environment:
+    - AIRFLOW__CORE__EXECUTOR=SequentialExecutor
+    - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=sqlite:////opt/airflow/airflow.db
+    - AIRFLOW__CORE__LOAD_EXAMPLES=False
+  volumes:
+    - ./dags:/opt/airflow/dags
+    - ./scripts:/opt/airflow/scripts
+  ports:
+    - "8080:8080"
+  command: >
+    bash -c "airflow db init &&
+             airflow users create --username admin --password admin --firstname Air --lastname Flow --role Admin --email admin@example.com &&
+             airflow webserver & airflow scheduler"

@@ -1,0 +1,17 @@
+[
+  {
+    "_id": {"$oid": "68c182978bc83cb9b22e37f7"},
+    "titre_avis": "Une catastrophe j'ai commander un lit…",
+    "contenu_texte": "Une catastrophe j'ai commander un lit le 4 aout livraison prévu au max le 14 aujourd'hui le 26 toujours pas de lit colis perdu aucun remboursement...",
+    "texte_nettoye": "une catastrophe j'ai commander un lit le 4 aout...",
+    "nombre_etoile": 1,
+    "date_avis": {"$date": "2025-08-26T09:55:31Z"},
+    "pays": "France",
+    "langue": "fr",
+    "reponse_entreprise": false,
+    "texte_entreprise": null,
+    "date_reponse_entreprise": null,
+    "societe_id": {"$oid": "650000000000000000000001"},
+    "prediction_ml": 1
+  }
+]
