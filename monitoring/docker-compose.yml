@@ -1,0 +1,115 @@
+services:
+  # ========== Prometheus (Collecteur de métriques) ==========
+  prometheus:
+    image: prom/prometheus:v2.48.0
+    container_name: monitoring_prometheus
+    restart: unless-stopped
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    ports:
+      - "9090:9090"
+    networks:
+      - projet_satisfaction_airflow_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9090/-/healthy"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ========== Grafana (Visualisation) ==========
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: monitoring_grafana
+    restart: unless-stopped
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_SERVER_ROOT_URL=http://localhost:3000
+      - GF_INSTALL_PLUGINS=grafana-piechart-panel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+    ports:
+      - "3000:3000"
+    networks:
+      - projet_satisfaction_airflow_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # ========== MongoDB Exporter ==========
+  mongodb_exporter:
+    image: percona/mongodb_exporter:0.40
+    container_name: monitoring_mongodb_exporter
+    restart: unless-stopped
+    command:
+      - '--mongodb.uri=mongodb://dkb:diakhaby@mongo_service:27017'
+      - '--collect-all'
+      - '--compatible-mode'
+    ports:
+      - "9216:9216"
+    networks:
+      - projet_satisfaction_airflow_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ========== StatsD Exporter (pour Airflow) ==========
+  statsd_exporter:
+    image: prom/statsd-exporter:v0.26.0
+    container_name: monitoring_statsd_exporter
+    restart: unless-stopped
+    command:
+      - '--statsd.mapping-config=/etc/statsd/statsd_mapping.yml'
+      - '--statsd.listen-udp=:9125'
+      - '--web.listen-address=:9102'
+    volumes:
+      - ./statsd/statsd_mapping.yml:/etc/statsd/statsd_mapping.yml:ro
+    ports:
+      - "9125:9125/udp"
+      - "9102:9102"
+    networks:
+      - projet_satisfaction_airflow_network
+    depends_on:
+      - prometheus
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+# ========== Volumes ==========
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+
+# ========== Networks ==========
+networks:
+  projet_satisfaction_airflow_network:
+    external: true
+    name: projet_satisfaction_airflow_network

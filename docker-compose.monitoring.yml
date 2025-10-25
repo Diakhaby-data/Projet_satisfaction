@@ -1,0 +1,207 @@
+
+services:
+  # ========== PROMETHEUS ==========
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: prometheus
+    restart: always
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/rules:/etc/prometheus/rules:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=30d'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+      - '--web.enable-lifecycle'
+    ports:
+      - "9090:9090"
+    networks:
+      - monitoring_network
+      - airflow_network  # Accès au réseau de l'app
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+        reservations:
+          memory: 512M
+
+  # ========== GRAFANA ==========
+  grafana:
+    image: grafana/grafana:latest
+    container_name: grafana
+    restart: always
+    environment:
+      # Credentials par défaut
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      
+      # Plugins
+      GF_INSTALL_PLUGINS: grafana-piechart-panel,grafana-clock-panel
+      
+      # Configuration
+      GF_SERVER_ROOT_URL: http://localhost:3000
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_USERS_ALLOW_ORG_CREATE: "false"
+      
+      # Logs
+      GF_LOG_MODE: console
+      GF_LOG_LEVEL: info
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3000:3000"
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+        reservations:
+          memory: 256M
+
+  # ========== NODE EXPORTER (métriques système) ==========
+  node-exporter:
+    image: prom/node-exporter:latest
+    container_name: node-exporter
+    restart: always
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    ports:
+      - "9100:9100"
+    networks:
+      - monitoring_network
+
+  # ========== CADVISOR (métriques Docker) ==========
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:latest
+    container_name: cadvisor
+    restart: always
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    ports:
+      - "8081:8080"
+    networks:
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+  # ========== POSTGRES EXPORTER ==========
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    container_name: postgres-exporter
+    restart: always
+    environment:
+      # IMPORTANT : Adapter à votre config PostgreSQL
+      DATA_SOURCE_NAME: "postgresql://airflow:airflow@airflow_postgres:5432/airflow?sslmode=disable"
+    ports:
+      - "9187:9187"
+    networks:
+      - monitoring_network
+      - airflow_network  # Accès au réseau de l'app
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ========== MONGODB EXPORTER ==========
+  mongodb-exporter:
+    image: percona/mongodb_exporter:0.40
+    container_name: mongodb-exporter
+    restart: always
+    command:
+      # IMPORTANT : Adapter à votre config MongoDB
+      - '--mongodb.uri=mongodb://dkb:diakhaby@mongo_service:27017'
+      - '--collect-all'
+      - '--compatible-mode'
+    ports:
+      - "9216:9216"
+    networks:
+      - monitoring_network
+      - airflow_network  # Accès au réseau de l'app
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ========== STATSD EXPORTER (pour Airflow) ==========
+  statsd-exporter:
+    image: prom/statsd-exporter:latest
+    container_name: statsd-exporter
+    restart: always
+    command:
+      - '--statsd.mapping-config=/tmp/statsd_mapping.yml'
+    volumes:
+      - ./monitoring/statsd/statsd_mapping.yml:/tmp/statsd_mapping.yml:ro
+    ports:
+      - "9125:9125/udp"  # Port StatsD
+      - "9102:9102"      # Port métriques Prometheus
+    networks:
+      - monitoring_network
+      - airflow_network  # Accès au réseau de l'app
+    deploy:
+      resources:
+        limits:
+          memory: 128M
+
+  # ========== ALERTMANAGER (optionnel - pour les alertes) ==========
+  alertmanager:
+    image: prom/alertmanager:latest
+    container_name: alertmanager
+    restart: always
+    volumes:
+      - ./monitoring/alertmanager/alertmanager.yml:/etc/alertmanager/alertmanager.yml:ro
+      - alertmanager_data:/alertmanager
+    command:
+      - '--config.file=/etc/alertmanager/alertmanager.yml'
+      - '--storage.path=/alertmanager'
+    ports:
+      - "9093:9093"
+    networks:
+      - monitoring_network
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+
+# ========== Volumes ==========
+volumes:
+  prometheus_data:
+    driver: local
+  grafana_data:
+    driver: local
+  alertmanager_data:
+    driver: local
+
+# ========== Networks ==========
+networks:
+  monitoring_network:
+    driver: bridge
+    name: monitoring_network
+  
+  # Connexion au réseau de l'app existante
+  airflow_network:
+    external: true
+    name: projet_satisfaction_airflow_network

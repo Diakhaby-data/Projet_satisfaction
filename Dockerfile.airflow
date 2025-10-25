@@ -1,0 +1,31 @@
+# --- Image de base : Apache Airflow officiel ---
+FROM apache/airflow:2.8.1-python3.11
+
+# --- Installer dépendances système nécessaires ---
+USER root
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    gcc \
+    libpq-dev \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# --- Copier requirements.txt pour Airflow ---
+COPY requirements-airflow.txt /opt/airflow/requirements.txt
+
+# --- Revenir à l'utilisateur airflow AVANT l'installation pip ---
+USER airflow
+
+# --- Installer pip et les packages Python ---
+RUN pip install --no-cache-dir --upgrade pip \
+    && pip install --no-cache-dir -r /opt/airflow/requirements.txt \
+    && pip check
+
+# --- Définir le dossier de travail par défaut ---
+WORKDIR /opt/airflow
+
+# --- Exposer le port web d'Airflow ---
+EXPOSE 8080
+
+# --- Commande par défaut (sera surchargée dans docker-compose.yml) ---
+CMD ["bash"]

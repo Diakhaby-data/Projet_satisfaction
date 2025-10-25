@@ -1,0 +1,10 @@
+# Ignorer les fichiers inutiles dans le contexte Docker
+__pycache__/
+*.pyc
+*.pyo
+*.db
+*.log
+logs/
+.airflow/
+.env
+.git

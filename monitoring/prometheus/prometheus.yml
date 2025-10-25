@@ -1,0 +1,61 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'projet_satisfaction'
+    environment: 'production'
+
+# Configuration des alertes (optionnel)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# Règles d'alerting (optionnel)
+# rule_files:
+#   - 'alerts.yml'
+
+scrape_configs:
+  # ========== Prometheus lui-même ==========
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          service: 'prometheus'
+
+  # ========== FastAPI Service ==========
+  - job_name: 'fastapi'
+    scrape_interval: 10s
+    static_configs:
+      - targets: ['fastapi_service:8000']
+        labels:
+          service: 'fastapi'
+          app: 'satisfaction_api'
+    metrics_path: '/metrics'
+
+  # ========== MongoDB ==========
+  - job_name: 'mongodb'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['mongodb_exporter:9216']
+        labels:
+          service: 'mongodb'
+          database: 'satisfaction'
+
+  # ========== Airflow (via StatsD Exporter) ==========
+  - job_name: 'airflow'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['statsd_exporter:9102']
+        labels:
+          service: 'airflow'
+          component: 'scheduler_webserver'
+
+  # ========== Node Exporter (Métriques système) ==========
+  - job_name: 'node'
+    scrape_interval: 30s
+    static_configs:
+      - targets: ['node_exporter:9100']
+        labels:
+          service: 'node_exporter'
+          instance: 'docker_host'

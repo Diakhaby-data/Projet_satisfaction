@@ -1,0 +1,83 @@
+version: '3.8'
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: ./Dockerfile
+    container_name: satis_app
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+      - mongo
+      - elasticsearch
+    environment:
+      MYSQL_HOST: mysql
+      MYSQL_PORT: 3306
+      MYSQL_USER: dkb
+      MYSQL_PASSWORD: diakhaby
+      MYSQL_DB: projet
+      MONGO_HOST: mongo
+      MONGO_PORT: 27017
+      MONGO_INITDB_ROOT_USERNAME: dkb
+      MONGO_INITDB_ROOT_PASSWORD: diakhaby
+      MONGO_INITDB_DATABASE: projet
+      ELASTICSEARCH_HOST: elasticsearch
+      ELASTICSEARCH_PORT: 9200
+    volumes:
+      - ../:/app
+    networks:
+      - satisfaction_client_default
+
+  mysql:
+    image: mysql:8.0
+    container_name: satis_mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: diakhaby
+      MYSQL_DATABASE: projet
+      MYSQL_USER: dkb
+      MYSQL_PASSWORD: diakhaby
+    ports:
+      - "3307:3306"   # hôte:cont
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - satisfaction_client_default
+
+  mongo:
+    image: mongo:7.0
+    container_name: satis_mongo
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: dkb
+      MONGO_INITDB_ROOT_PASSWORD: diakhaby
+      MONGO_INITDB_DATABASE: projet
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - satisfaction_client_default
+
+  elasticsearch:
+    image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
+    container_name: satis_elasticsearch
+    environment:
+      discovery.type: single-node
+      ES_JAVA_OPTS: "-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+      - "9300:9300"
+    volumes:
+      - es_data:/usr/share/elasticsearch/data
+    networks:
+      - satisfaction_client_default
+
+volumes:
+  mysql_data:
+  mongo_data:
+  es_data:
+
+networks:
+  satisfaction_client_default:

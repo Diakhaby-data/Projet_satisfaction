@@ -1,0 +1,24 @@
+ # check_packages.py
+packages = [
+    # Web / API
+    "fastapi", "uvicorn", "starlette", "python_multipart", "email_validator", "orjson", "ujson",
+    # Web scraping
+    "requests", "bs4", "lxml", "selenium", "webdriver_manager",
+    # Data / ML
+    "pandas", "numpy", "sklearn", "xgboost", "lightgbm", "matplotlib", "seaborn", "plotly",
+    # NLP
+    "spacy", "nltk", "textblob",
+    # Databases
+    "sqlalchemy", "pymysql", "pymongo", "elasticsearch",
+    # Utilities
+    "dotenv", "prometheus_client",
+    # Jupyter
+    "jupyter", "notebook"
+]
+
+for pkg in packages:
+    try:
+        __import__(pkg)
+        print(f"[OK] {pkg} importé avec succès")
+    except ImportError:
+        print(f"[MISSING] {pkg} n'est pas installé")
