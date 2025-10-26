@@ -1,8 +1,6 @@
 Projet Supply Chain - Analyse de la Satisfaction Client (Showroom Privé)
 
 Auteur : Mamadou DIAKHABY
-    
-Formation : Data Engineer (JUL25_BDE)
 
 Objectif du projet
 
@@ -132,7 +130,7 @@ Projet_satisfaction/
 
 Installation
 1. Cloner le dépôt
-git clone https://github.com/DataScientest-Studio/JUIL25-BDE-SATISFACTION.git
+git clone https://github.com/Diakhaby-data/Projet_satisfaction.git
 cd Projet_satisfaction
 
 2. Créer l’environnement Python
@@ -233,4 +231,5 @@ Push & Pull Request
 Contact : diakhaby14@gmail.com
 
 Pour toute question technique ou contribution :
+
 Créez une issue GitHub ou contactez directement Mamadou Diakhaby.
