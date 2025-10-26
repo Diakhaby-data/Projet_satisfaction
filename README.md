@@ -183,7 +183,3 @@ Push et Pull Request
 
 Pour toute question technique ou contribution : créez une issue GitHub ou contactez Mamadou Diakhaby.
 
-Licence
-
-Projet académique et open-source à but pédagogique.
-Usage libre pour la recherche, l’apprentissage et la démonstration de compétences en Data Engineering / MLOps / Machine Learning appliqué.
