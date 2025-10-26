@@ -1,235 +1,189 @@
-Projet Supply Chain - Analyse de la Satisfaction Client (Showroom Privé)
+Projet Supply Chain — Analyse de la Satisfaction Client (Showroom Privé)
 
 Auteur : Mamadou DIAKHABY
+Contact : diakhaby14@gmail.com
+
+Dépôt : GitHub – Projet_satisfaction
 
 Objectif du projet
 
-Ce projet vise à analyser, modéliser et visualiser la satisfaction client à partir de données d’avis réels collectés sur Showroom Privé (~20 000 avis).
+Ce projet vise à analyser, modéliser et visualiser la satisfaction client à partir de plus de 20 000 avis réels collectés sur Showroom Privé.
 
-L’objectif est triple :
+Objectifs principaux
 
-Ingestion et stockage des données brutes (MongoDB → MySQL)
+Ingestion et stockage des données brutes (MongoDB --> MySQL)
 
-Traitement et transformation via pipelines Airflow
+Orchestration des traitements via Airflow
 
-Analyse et prédiction des sentiments avec un modèle de Machine Learning exposé via API FastAPI
+Analyse et prédiction des sentiments clients grâce à un modèle de Machine Learning déployé sur FastAPI
 
-Architecture
+Architecture globale
 
-Flux de données :
+Flux de données complet (Data --> API --> Monitoring) :
 
-┌─────────────┐      ┌──────────────┐      ┌─────────────┐
-│   MongoDB   │─────▶│    Airflow   │─────▶│    MySQL    │
-│  (Raw Data) │      │   (ETL/ELT)  │      │ (Analytics) │
-└─────────────┘      └──────────────┘      └──────┬──────┘
-                                                   │
-                     ┌─────────────────────────────┘
-                     │
-                     ▼
-              ┌──────────────┐
-              │   FastAPI    │◀────── Prometheus
-              │   + ML Model │
-              └──────┬───────┘
-                     │
-        ┌────────────┼────────────┐
-        ▼            ▼            ▼
-   ┌────────┐  ┌─────────┐  ┌─────────┐
-   │Swagger │  │Grafana  │  │StatsD   │
-   └────────┘  └─────────┘  └─────────┘
+┌──────────────┐     ┌──────────────┐     ┌─────────────┐
+│   MongoDB    │──▶  │   Airflow    │──▶  │    MySQL    │
+│ Données brutes│    │  ETL/ELT     │     │  Stockage   │
+└──────────────┘     └──────────────┘     └──────┬──────┘
+                                                 │
+                                                 ▼
+                                          ┌──────────────┐
+                                          │   FastAPI    │◀── Prometheus
+                                          │ + Modèle ML  │
+                                          └──────┬───────┘
+                                                 │
+                           ┌──────────────┬─────────────┬─────────────┐
+                           ▼              ▼             ▼
+                        Swagger        Grafana        StatsD
 
-Structure commentée du projet
+
+L’architecture combine ingestion, orchestration, déploiement et monitoring complet.
+
+Structure du projet
 Projet_satisfaction/
-├── Dockerfile                     # Image principale Python du projet
-├── Dockerfile.airflow             # Image Docker dédiée à Airflow
-├── Dockerfile.fastapi             # Image Docker dédiée à FastAPI
-├── Makefile                       # Automatisation des commandes (build, tests, run)
-├── main.py                        # Script exécutable principal
-├── Ingestion_reviews.py           # Ingestion MongoDB -> MySQL
-├── Ingestion_reviews_liaisons.py  # Liaison des avis aux sociétés
-├── create_pipeline.py             # Construction du pipeline ML
-├── Projet_analyse_sentiments2.ipynb # Notebook d’analyse exploratoire
+├── app/                      # API FastAPI + modèle ML
+│   ├── main.py               # API principale
+│   ├── models.py             # Modèles ML
+│   ├── models_api.py         # Schémas de données
+│   ├── retrain_model.py      # Réentraînement du modèle
+│   ├── run_predictions.py    # Prédictions batch
+│   ├── analyse_sentiment_errors.py
+│   └── sentiment_pipeline.joblib
 │
-├── app/                           # Application FastAPI + modèle ML
-│   ├── main.py                    # API principale
-│   ├── dashboard.py               # Dashboard Streamlit
-│   ├── database.py                # Connexion MongoDB
-│   ├── database_test.py           # Tests de connexion
-│   ├── models.py                  # Modèles ML
-│   ├── models_api.py              # Schémas de données pour l’API
-│   ├── run_predictions.py         # Lancement des prédictions batch
-│   ├── retrain_model.py           # Réentraînement du modèle
-│   ├── analyze_sentiment_errors.py# Analyse des erreurs de prédiction
-│   ├── create_pipeline.py         # Construction pipeline ML
-│   ├── Projet_analyse_sentiments_ML.ipynb # Notebook ML
-│   ├── data/                      # Données utilisées par FastAPI
-│   ├── requirements-fastapi.txt   # Dépendances FastAPI
-│   └── sentiment_pipeline.joblib  # Modèle ML enregistré
+├── dags/                     # DAGs Airflow
+│   └── satisfaction_dag.py
 │
-├── dags/                          # DAGs Airflow
-│   └── satisfaction_dag.py        # Pipeline d’orchestration des traitements
+├── docker/                   # Configurations Docker
+│   ├── docker-compose.yml
+│   └── Dockerfile.fastapi
 │
-├── data/                          # Données sources et transformées
-│   ├── avis.json                  # Données brutes MongoDB
-│   ├── avis_clean.json            # Données nettoyées
-│   ├── avis_derive.csv            # Données enrichies
-│   ├── avis_with_predictions.csv  # Avis avec prédiction de sentiment
-│   ├── satisfaction_report.txt    # Rapport texte généré
-│   └── sentiment_pipeline.joblib  # Modèle ML local
+├── monitoring/               # Stack Prometheus + Grafana + StatsD
 │
-├── docker/                        # Configurations Docker spécifiques
-│   └── docker-compose.yml         # Orchestration des conteneurs principaux
-├── docker-compose.yml              # Compose global du projet
-├── docker-compose.monitoring.yml   # Compose dédié au monitoring (Grafana/Prometheus)
+├── sql/                      # Scripts MySQL
+│   ├── 01_create_transform.sql
+│   ├── 02_link_all_reviews_to_showroom.sql
+│   └── 03_test_queries.sql
 │
-├── docs/                          # Documentation
-│   ├── ERD.md                     # Diagramme entité-relation MySQL
-│   └── screenshots/               # Captures d’écran
+├── src/                      # Code Python modulaire
+│   ├── ingestion/            # Ingestion MongoDB → MySQL
+│   ├── transform/            # Nettoyage et enrichissement
+│   └── utils/                # Fonctions auxiliaires
 │
-├── logs/                          # Logs Airflow (scheduler, DAGs…)
+├── docs/                     # Documentation et visuels
+│   ├── ERD.md
+│   └── architecture.png
 │
-├── mongo/                         # Scripts MongoDB
-│   ├── 01_indexes.js              # Indexation MongoDB
-│   └── 04_test_queries_Mongo.sql  # Requêtes de test
-│
-├── monitoring/                    # Stack de monitoring
-│   ├── docker-compose.yml         # Monitoring Prometheus + Grafana
-│   ├── grafana/                   # Dashboards Grafana
-│   ├── prometheus/                # Config Prometheus
-│   └── statsd/                    # Collecte des métriques
-│
-├── reports/                       # Résultats graphiques
-│   ├── distribution_nombre_etoiles.png
-│   └── distribution_pays.png
-│
-├── run_scripts/                   # Scripts utilitaires SQL & Python
-│   ├── 01_schema.sql              # Création du schéma MySQL
-│   ├── script_20_societes.py      # Insertion sociétés
-│   └── script_showroom.py         # Pipeline Showroom Privé
-│
-├── scripts/                       # Scripts d’analyse et scraping
-│   ├── derive_data.py             # Feature engineering
-│   ├── scrape_data.py             # Scraping / récupération de données
-│   └── test_societes.sql          # Tests SQL
-│
-├── sql/                           # Scripts SQL principaux
-│   ├── 01_create_transform.sql    # Création du schéma MySQL
-│   ├── 02_link_all_reviews_to_showroom.sql # Liaison Showroom
-│   ├── 03_test_queries.sql        # Requêtes de validation
-│   └── test_societes.sql          # Requêtes de test
-│
-├── src/                           # Code Python modulaire
-│   ├── ingestion/                 # Ingestion MongoDB → MySQL
-│   ├── storage/                   # Chargement en base
-│   ├── transform/                 # Nettoyage et enrichissement
-│   └── utils/                     # Fonctions auxiliaires
-│
-├── setup_monitoring.sh            # Installation du monitoring
-├── test_db.py                     # Tests base de données
-└── tests/                         # Tests unitaires
-    └── utils/
+└── tests/                    # Tests unitaires
 
-Installation
-1. Cloner le dépôt
+
+Une documentation technique détaillée est disponible dans docs/.
+
+Installation et exécution
+1️ - Cloner le dépôt
 git clone https://github.com/Diakhaby-data/Projet_satisfaction.git
 cd Projet_satisfaction
 
-2. Créer l’environnement Python
+2️ - Créer l’environnement Python
 python -m venv venv
-source venv/bin/activate      # Linux/macOS
-.\venv\Scripts\activate       # Windows
+source venv/bin/activate  # Linux/macOS
+# ou
+.\venv\Scripts\activate   # Windows
+
 pip install -r requirements.txt
 
-3. Lancer les services Docker
+3️ - Lancer les services Docker
 docker compose -f docker/docker-compose.yml up -d
 
-4. Initialiser la base MySQL
-mysql -h 127.0.0.1 -P 3307 -u [USER] -p < sql/01_create_transform.sql
+4️ - Initialiser la base MySQL
+mysql -h 127.0.0.1 -P 3307 -u <USER> -p < sql/01_create_transform.sql
 
-Exécution du pipeline d’ingestion
-
-Importer les avis de MongoDB
-
+Pipeline de traitement
+1. Ingestion MongoDB --> MySQL
 python src/ingestion/ingest_reviews_from_mongo.py
 
-Lier les avis à Showroom Privé
+2. Liaison des avis à Showroom Privé
+mysql -h 127.0.0.1 -P 3307 -u <USER> -p < sql/02_link_all_reviews_to_showroom.sql
 
-mysql -h 127.0.0.1 -P 3307 -u [USER] -p < sql/02_link_all_reviews_to_showroom.sql
+3. Vérification
+mysql -h 127.0.0.1 -P 3307 -u <USER> -p < sql/03_test_queries.sql
 
-
-Vérifier la cohérence
-
-mysql -h 127.0.0.1 -P 3307 -u [USER] -p < sql/03_test_queries.sql
-
-Machine Learning
+Modélisation & Machine Learning
 
 Modèle de base : TF-IDF + Régression Logistique
 
 Modèles avancés : RandomForest, SVM, CamemBERT
 
-Réentraînement : app/retrain_model.py
+Réentraînement automatique : app/retrain_model.py
 
-Analyse d’erreur : app/analyze_sentiment_errors.py
+Analyse d’erreurs : app/analyse_sentiment_errors.py
+
+Le modèle est sérialisé sous :
+app/sentiment_pipeline.joblib
 
 API FastAPI
 
 Documentation Swagger : http://localhost:8001/docs
 
-Endpoints principaux :
+Endpoints principaux
+Méthode	Endpoint	Description
+GET	/	Bilan de santé
+POST	/predict	Prédiction du sentiment
+GET	/stats	Statistiques agrégées
 
-GET / → health check
+Monitoring et observabilité
 
-POST /predict → prédiction du sentiment
+Prometheus --> collecte des métriques API et système
 
-GET /stats → statistiques agrégées
+Grafana --> visualisation des métriques
 
-Monitoring et Observabilité
-
-Prometheus → métriques système et API
-
-Grafana → tableaux de bord et visualisations
-
-StatsD → collecte de métriques internes
+StatsD --> collecte des métriques internes
 
 Lancer le monitoring :
 
 docker compose -f docker-compose.monitoring.yml up -d
 
 Sauvegarde et restauration
-
 MySQL
-
-mysqldump -h 127.0.0.1 -P 3307 -u [USER] -p projet > backup_mysql.sql
-
+mysqldump -h 127.0.0.1 -P 3307 -u <USER> -p projet > backup_mysql.sql
 
 MongoDB
+mongodump --host localhost --port 27017 -u <USER> -p <PASSWORD> \
+  --authenticationDatabase admin --db projet
 
-mongodump --host localhost --port 27017 -u [USER] -p [PASSWORD] --authenticationDatabase admin --db projet
 
+Les fichiers de sauvegarde sont exclus du Git (backups/ dans .gitignore).
 
-Les sauvegardes sont à exclure du Git (backups/ dans .gitignore).
+Normes de développement
 
-Standards de développement
+Formatage du code : black
 
-Code formaté avec black et vérifié avec flake8
+Linting : flake8
 
-Tests unitaires via pytest
+Tests unitaires : pytest
 
-CI/CD GitHub Actions : build, test, déploiement staging
+CI/CD : GitHub Actions (build, tests, staging)
 
-Documentation automatique via OpenAPI/Swagger
+Documentation automatique : OpenAPI/Swagger
 
 Contribution
 
-Fork du dépôt
+Forker le dépôt
 
-Créer une branche : git checkout -b feat/your-feature
+Créer une branche :
 
-Commit clair : git commit -m "feat: ajout pipeline d’ingestion"
+git checkout -b feat/your-feature
 
-Push & Pull Request
 
-Contact : diakhaby14@gmail.com
+Commit clair :
 
-Pour toute question technique ou contribution :
+git commit -m "feat: ajout pipeline d’ingestion"
 
-Créez une issue GitHub ou contactez directement Mamadou Diakhaby.
+
+Push et Pull Request
+
+Pour toute question technique ou contribution : créez une issue GitHub ou contactez Mamadou Diakhaby.
+
+Licence
+
+Projet académique et open-source à but pédagogique.
+Usage libre pour la recherche, l’apprentissage et la démonstration de compétences en Data Engineering / MLOps / Machine Learning appliqué.
