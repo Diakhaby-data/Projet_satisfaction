@@ -7,7 +7,8 @@ Dépôt : GitHub – Projet_satisfaction
 
 Objectif du projet
 
-Ce projet vise à analyser, modéliser et visualiser la satisfaction client à partir de plus de 20 000 avis réels collectés sur Showroom Privé.
+Ce projet vise à analyser, modéliser et visualiser la satisfaction client à partir de plus de 20 259 avis réels collectés sur Showroom Privé.
+Analyser la satisfaction client pour détecter les points d’amélioration du service après-vente de ShowroomPrivé
 
 Objectifs principaux
 
@@ -182,4 +183,5 @@ git commit -m "feat: ajout pipeline d’ingestion"
 Push et Pull Request
 
 Pour toute question technique ou contribution : créez une issue GitHub ou contactez Mamadou Diakhaby.
+
 
